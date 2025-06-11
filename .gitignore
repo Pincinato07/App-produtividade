@@ -1,0 +1,40 @@
+# Arquivos zip e grandes
+*.zip
+app_produtividade.zip
+**/*.zip
+
+# Arquivos APK e pastas de build
+*.apk
+*.aab
+**/build/
+**/build/**
+build/
+app_produtividade/build/
+app_produtividade/**/build/
+app_produtividade/**/build/**
+**/cache.dill*
+**/*.dill
+
+# Arquivos do Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+
+# Arquivos do Android Studio/VS Code
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# Arquivos do macOS
+.DS_Store
+
+# Arquivos grandes
+*.rar
+*.7z
+*.tar.gz
+*.tgz 
