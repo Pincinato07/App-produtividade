@@ -1,19 +1,38 @@
+import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+enum AuthProviderType {
+  email,
+  google,
+  apple,
+  unknown,
+}
+
 class UserModel {
   final String id;
-  final String name;
+  final String? name;
   final String email;
   final double? weight;
   final double? height;
-  final String authProvider;
+  final AuthProviderType authProvider;
 
   UserModel({
     required this.id,
-    required this.name,
+    this.name,
     required this.email,
     this.weight,
     this.height,
     required this.authProvider,
   });
+
+  factory UserModel.fromFirebaseUser(User user, AuthProviderType provider) {
+    return UserModel(
+      id: user.uid,
+      name: user.displayName,
+      email: user.email ?? '',
+      authProvider: provider,
+    );
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -22,18 +41,27 @@ class UserModel {
       'email': email,
       'weight': weight,
       'height': height,
-      'authProvider': authProvider,
+      'authProvider': authProvider.toString().split('.').last,
     };
   }
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    AuthProviderType providerType;
+    try {
+      providerType = AuthProviderType.values.firstWhere(
+        (e) => e.toString().split('.').last == json['authProvider'] as String,
+      );
+    } catch (e) {
+      providerType = AuthProviderType.unknown;
+    }
+
     return UserModel(
       id: json['id'] as String,
-      name: json['name'] as String,
+      name: json['name'] as String?,
       email: json['email'] as String,
       weight: json['weight'] != null ? (json['weight'] as num).toDouble() : null,
       height: json['height'] != null ? (json['height'] as num).toDouble() : null,
-      authProvider: json['authProvider'] as String,
+      authProvider: providerType,
     );
   }
 
@@ -43,7 +71,7 @@ class UserModel {
     String? email,
     double? weight,
     double? height,
-    String? authProvider,
+    AuthProviderType? authProvider,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -54,4 +82,6 @@ class UserModel {
       authProvider: authProvider ?? this.authProvider,
     );
   }
+
+  bool get hasFullProfile => name != null && weight != null && height != null && name!.isNotEmpty;
 }

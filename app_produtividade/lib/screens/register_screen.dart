@@ -4,7 +4,9 @@ import '../providers/auth_provider.dart';
 import 'dashboard_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  final bool isProfileCompletion;
+
+  const RegisterScreen({super.key, this.isProfileCompletion = false});
 
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
@@ -15,6 +17,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _showLoginForm = false;
   bool _showRegisterForm = false;
   String nome = '', email = '', senha = '', peso = '', altura = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _showRegisterForm = widget.isProfileCompletion;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -150,7 +158,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 _formKey.currentState?.save();
                 final authProvider = Provider.of<AuthProvider>(context, listen: false);
                 await authProvider.signInWithEmail(email, senha);
-                // O Consumer no main.dart cuida da navegação
+
+                if (!mounted) return;
+
+                if (authProvider.isAuthenticated) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Login bem-sucedido!')),
+                  );
+                } else if (authProvider.error != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(authProvider.error!)),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF3CA6F6),
@@ -181,31 +200,78 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _registerForm() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
     return Form(
       key: _formKey,
       child: Column(
         children: [
           _input('Nome', Icons.person, (v) => nome = v!),
           const SizedBox(height: 16),
-          _input('E-mail', Icons.email, (v) => email = v!, keyboard: TextInputType.emailAddress),
+          if (!widget.isProfileCompletion) ...[
+            _input('E-mail', Icons.email, (v) => email = v!, keyboard: TextInputType.emailAddress, validator: (value) {
+              if (value == null || value.isEmpty) return 'Por favor, insira seu e-mail';
+              return null;
+            }),
+            const SizedBox(height: 16),
+            _input('Senha', Icons.lock, (v) => senha = v!, obscure: true, validator: (value) {
+              if (value == null || value.isEmpty) return 'Por favor, insira sua senha';
+              if (value.length < 6) return 'A senha deve ter pelo menos 6 caracteres';
+              return null;
+            }),
+            const SizedBox(height: 16),
+          ],
+          _input('Peso (kg)', Icons.monitor_weight, (v) => peso = v!, keyboard: TextInputType.number, validator: (value) {
+            if (value == null || value.isEmpty) return 'Por favor, insira seu peso';
+            if (double.tryParse(value) == null) return 'Peso inválido';
+            return null;
+          }),
           const SizedBox(height: 16),
-          _input('Senha', Icons.lock, (v) => senha = v!, obscure: true),
-          const SizedBox(height: 16),
-          _input('Peso (kg)', Icons.monitor_weight, (v) => peso = v!, keyboard: TextInputType.number),
-          const SizedBox(height: 16),
-          _input('Altura (cm)', Icons.height, (v) => altura = v!, keyboard: TextInputType.number),
+          _input('Altura (cm)', Icons.height, (v) => altura = v!, keyboard: TextInputType.number, validator: (value) {
+            if (value == null || value.isEmpty) return 'Por favor, insira sua altura';
+            if (double.tryParse(value) == null) return 'Altura inválida';
+            return null;
+          }),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
             height: 48,
             child: ElevatedButton(
-              onPressed: () {
-                _formKey.currentState?.save();
-                // Aqui você pode implementar o cadastro real
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => DashboardScreen()),
-                );
+              onPressed: () async {
+                if (_formKey.currentState?.validate() ?? false) {
+                  _formKey.currentState?.save();
+                  try {
+                    if (widget.isProfileCompletion) {
+                      await authProvider.completeUserProfile(nome, double.parse(peso), double.parse(altura));
+                    } else {
+                      await authProvider.signUpWithEmail(email, senha);
+                      if (authProvider.isAuthenticated) {
+                        await authProvider.completeUserProfile(nome, double.parse(peso), double.parse(altura));
+                      }
+                    }
+
+                    if (!mounted) return;
+
+                    if (authProvider.isAuthenticated && !authProvider.needsProfileCompletion) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Cadastro e perfil completos! Redirecionando...')),
+                      );
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => DashboardScreen()),
+                      );
+                    } else if (authProvider.error != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(authProvider.error!)),
+                      );
+                    }
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Erro: ${e.toString()}')),
+                    );
+                  }
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF3CA6F6),
@@ -215,8 +281,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Text(
-                'Criar conta',
+              child: Text(
+                widget.isProfileCompletion ? 'Completar Perfil' : 'Criar conta',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
             ),
@@ -235,7 +301,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _input(String label, IconData icon, Function(String?) onSaved, {TextInputType keyboard = TextInputType.text, bool obscure = false}) {
+  Widget _input(String label, IconData icon, Function(String?) onSaved, {TextInputType keyboard = TextInputType.text, bool obscure = false, String? Function(String?)? validator}) {
     return TextFormField(
       decoration: InputDecoration(
         labelText: label,
@@ -247,6 +313,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       keyboardType: keyboard,
       obscureText: obscure,
       onSaved: onSaved,
+      validator: validator,
     );
   }
 

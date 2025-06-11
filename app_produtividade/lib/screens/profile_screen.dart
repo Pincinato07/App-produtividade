@@ -48,7 +48,11 @@ class ProfileScreen extends StatelessWidget {
                                     radius: 30,
                                     backgroundColor: const Color(0xFF3CA6F6),
                                     child: Text(
-                                      user.name.substring(0, 1).toUpperCase(),
+                                      user.name != null && user.name!.isNotEmpty
+                                          ? user.name!.substring(0, 1).toUpperCase()
+                                          : user.email.isNotEmpty
+                                              ? user.email.substring(0, 1).toUpperCase()
+                                              : '', // Fallback if both name and email are empty
                                       style: const TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
@@ -62,7 +66,9 @@ class ProfileScreen extends StatelessWidget {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          user.name,
+                                          user.name != null && user.name!.isNotEmpty
+                                              ? user.name!
+                                              : 'Nome Não Informado', // Display a default if name is null
                                           style: Theme.of(context).textTheme.headlineSmall,
                                         ),
                                         const SizedBox(height: 4),
@@ -97,7 +103,7 @@ class ProfileScreen extends StatelessWidget {
                               _buildInfoRow(
                                 context,
                                 'Método de Login',
-                                user.authProvider.toUpperCase(),
+                                user.authProvider.name.toUpperCase(),
                                 Icons.login,
                               ),
                             ],

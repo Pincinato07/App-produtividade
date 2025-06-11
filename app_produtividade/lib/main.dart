@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'providers/auth_provider.dart';
+import 'firebase_options.dart';
 import 'screens/register_screen.dart';
 import 'screens/progress_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/dashboard_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(
     MultiProvider(
       providers: [
@@ -91,7 +97,11 @@ class FocuslyApp extends StatelessWidget {
               ),
             );
           }
-          return authProvider.isAuthenticated ? const DashboardScreen() : const RegisterScreen();
+          return authProvider.isAuthenticated
+              ? (authProvider.needsProfileCompletion
+                  ? const RegisterScreen(isProfileCompletion: true)
+                  : const DashboardScreen())
+              : const RegisterScreen();
         },
       ),
     );
