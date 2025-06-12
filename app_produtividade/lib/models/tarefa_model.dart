@@ -8,6 +8,7 @@ class TarefaModel {
   final bool isCompleted;
   final DateTime? dueDate;
   final String? category;
+  final List<int>? repetitionDays;
 
   TarefaModel({
     this.id,
@@ -17,6 +18,7 @@ class TarefaModel {
     this.isCompleted = false,
     this.dueDate,
     this.category,
+    this.repetitionDays,
   });
 
   // Converte um objeto TarefaModel para um mapa JSON (para Firestore)
@@ -28,6 +30,7 @@ class TarefaModel {
       'isCompleted': isCompleted,
       'dueDate': dueDate != null ? Timestamp.fromDate(dueDate!) : null,
       'category': category,
+      'repetitionDays': repetitionDays,
     };
   }
 
@@ -41,6 +44,7 @@ class TarefaModel {
       isCompleted: json['isCompleted'] as bool? ?? false,
       dueDate: (json['dueDate'] as Timestamp?)?.toDate(),
       category: json['category'] as String?,
+      repetitionDays: (json['repetitionDays'] as List<dynamic>?)?.map((e) => e as int).toList(),
     );
   }
 
@@ -53,6 +57,7 @@ class TarefaModel {
     bool? isCompleted,
     DateTime? dueDate,
     String? category,
+    List<int>? repetitionDays,
   }) {
     return TarefaModel(
       id: id ?? this.id,
@@ -62,9 +67,10 @@ class TarefaModel {
       isCompleted: isCompleted ?? this.isCompleted,
       dueDate: dueDate ?? this.dueDate,
       category: category ?? this.category,
+      repetitionDays: repetitionDays ?? this.repetitionDays,
     );
   }
 
   @override
-  String toString() => 'Tarefa: $nome, Prioridade: $prioridade, Data: ${data.toIso8601String()}, Concluída: $isCompleted, Prazo: ${dueDate?.toIso8601String()}, Categoria: $category';
+  String toString() => 'Tarefa: $nome, Prioridade: $prioridade, Data: ${data.toIso8601String()}, Concluída: $isCompleted, Prazo: ${dueDate?.toIso8601String()}, Categoria: $category, Repetição: $repetitionDays';
 } 

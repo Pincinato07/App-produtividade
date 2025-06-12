@@ -20,6 +20,18 @@ class _ProgressScreenState extends State<ProgressScreen> {
   DateTime? _selectedDueDate;
   String? _selectedCategory;
   String? _selectedFilterCategory;
+  List<int> _selectedRepetitionDays = []; // Novo: Dias da semana selecionados para repetição
+
+  // Mapeamento de dias da semana para exibição na UI e valores de inteiro
+  final Map<int, String> _weekdaysMap = {
+    1: 'Segunda',
+    2: 'Terça',
+    3: 'Quarta',
+    4: 'Quinta',
+    5: 'Sexta',
+    6: 'Sábado',
+    7: 'Domingo',
+  };
 
   // Lista de categorias disponíveis
   final List<String> _categories = [
@@ -48,17 +60,45 @@ class _ProgressScreenState extends State<ProgressScreen> {
     try {
       final tarefas = await _tarefaService.getTarefas();
       final tarefasDoMes = tarefas.where((tarefa) {
+        // Verifica se a tarefa tem data definida E está dentro do mês atual
+        // OU se ela tem dias de repetição definidos
         final tarefaDate = DateTime(
             tarefa.data.year, tarefa.data.month, tarefa.data.day);
-        return tarefaDate.isAfter(_currentMonth.subtract(const Duration(days: 1))) &&
+
+        bool isWithinMonth = tarefaDate.isAfter(_currentMonth.subtract(const Duration(days: 1))) &&
             tarefaDate.isBefore(DateTime(_currentMonth.year, _currentMonth.month + 1, 1));
+
+        // Se a tarefa tem dias de repetição, ela é relevante para todo o mês
+        if (tarefa.repetitionDays != null && tarefa.repetitionDays!.isNotEmpty) {
+          return true; // Considera a tarefa relevante para ser processada por todos os dias do mês
+        }
+
+        return isWithinMonth; // Para tarefas sem repetição, verifica a data normal
       }).toList();
 
       final tarefasPorDia = <DateTime, List<TarefaModel>>{};
       for (var tarefa in tarefasDoMes) {
-        final date = DateTime(
-            tarefa.data.year, tarefa.data.month, tarefa.data.day);
-        tarefasPorDia[date] = [...(tarefasPorDia[date] ?? []), tarefa];
+        if (tarefa.repetitionDays != null && tarefa.repetitionDays!.isNotEmpty) {
+          // Se a tarefa tem repetição, adicione-a a todos os dias aplicáveis do mês
+          final firstDayOfMonth = DateTime(_currentMonth.year, _currentMonth.month, 1);
+          final lastDayOfMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 0);
+
+          for (DateTime d = firstDayOfMonth; d.isBefore(lastDayOfMonth.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+            // Ajuste o dia da semana para corresponder ao padrão do Dart (1=Seg, 7=Dom)
+            // O .weekday do Dart retorna 1 para segunda e 7 para domingo.
+            // Se o repetitionDays usa 1 para segunda e 7 para domingo, a lógica está ok.
+            // Certifique-se de que a enumeração corresponde.
+            if (tarefa.repetitionDays!.contains(d.weekday)) {
+              final dateKey = DateTime(d.year, d.month, d.day);
+              tarefasPorDia[dateKey] = [...(tarefasPorDia[dateKey] ?? []), tarefa];
+            }
+          }
+        } else {
+          // Para tarefas sem repetição, adicione-as apenas à sua data específica
+          final date = DateTime(
+              tarefa.data.year, tarefa.data.month, tarefa.data.day);
+          tarefasPorDia[date] = [...(tarefasPorDia[date] ?? []), tarefa];
+        }
       }
 
       setState(() {
@@ -129,14 +169,18 @@ class _ProgressScreenState extends State<ProgressScreen> {
   }
 
   void _filterTasksForSelectedDate() {
-    final tarefasDoDia = _allTasksInMonth[_selectedDate] ?? [];
+    // Pega todas as tarefas para o dia selecionado, incluindo as tarefas repetidas que foram pré-processadas
+    List<TarefaModel> tarefasDoDia = _allTasksInMonth[_selectedDate] ?? [];
+
     if (_selectedFilterCategory != null) {
-      _tarefasHoje = tarefasDoDia
+      tarefasDoDia = tarefasDoDia
           .where((tarefa) => tarefa.category == _selectedFilterCategory)
           .toList();
-    } else {
-      _tarefasHoje = tarefasDoDia;
     }
+
+    setState(() {
+      _tarefasHoje = tarefasDoDia;
+    });
   }
 
   void _onDateSelected(DateTime date) {
@@ -238,9 +282,9 @@ class _ProgressScreenState extends State<ProgressScreen> {
                     final dateKey = DateTime(day.year, day.month, day.day);
                     final hasTasks = _allTasksInMonth.containsKey(dateKey) && (_allTasksInMonth[dateKey]?.isNotEmpty ?? false);
 
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                      child: GestureDetector(
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: GestureDetector(
                         onTap: () {
                           setState(() {
                             _selectedDate = day; // Atualiza o dia selecionado
@@ -248,57 +292,57 @@ class _ProgressScreenState extends State<ProgressScreen> {
                           });
                         },
                         onLongPress: () => _abrirAgendamento(context, day), // Passa a data selecionada
-                        child: Container(
-                          width: 60,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? const Color(0xFF3CA6F6)
-                                : Colors.grey[200],
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: isSelected
-                                ? [
-                                    BoxShadow(
-                                        color: const Color(0xFF3CA6F6)
-                                            .withOpacity(0.2),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 4))
-                                  ]
-                                : [],
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
+                          child: Container(
+                            width: 60,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFF3CA6F6)
+                                  : Colors.grey[200],
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                          color: const Color(0xFF3CA6F6)
+                                              .withOpacity(0.2),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4))
+                                    ]
+                                  : [],
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
                                 day.day.toString(),
-                                style: TextStyle(
-                                  fontSize: 18,
+                                  style: TextStyle(
+                                    fontSize: 18,
                                   color: isSelected ? Colors.white : Colors.black,
-                                  fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                              Text(
+                                Text(
                                 DateFormat('MMM', 'pt_BR').format(day), // Exibe o mês abreviado
-                                style: TextStyle(
-                                  fontSize: 12,
+                                  style: TextStyle(
+                                    fontSize: 12,
                                   color:
                                       isSelected ? Colors.white : Colors.black54,
                                 ),
                               ),
                               if (hasTasks) // Use a variável hasTasks aqui
-                                const Icon(Icons.check_circle,
-                                    color: Colors.white, size: 18),
-                            ],
+                                  const Icon(Icons.check_circle,
+                                      color: Colors.white, size: 18),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
+                      );
                   },
                 ),
               ),
 
               const SizedBox(height: 24),
 
-              // Progresso 
+              // Progresso
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
@@ -414,297 +458,363 @@ class _ProgressScreenState extends State<ProgressScreen> {
     );
   }
 
-  void _abrirAgendamento(BuildContext context, DateTime selectedDate) {
+  Future<void> _abrirAgendamento(BuildContext context, DateTime selectedDate) async {
     String prioridade = 'Média';
     String nomeTarefa = '';
     DateTime? _selectedDueDate = this._selectedDueDate;
     String? _selectedCategory = this._selectedCategory;
+    List<int> _dialogRepetitionDays = List.from(_selectedRepetitionDays); // Usar uma cópia para o diálogo
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (_) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          backgroundColor: Colors.white,
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  "Nova Tarefa",
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      color: Color(0xFF3CA6F6)),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  decoration: InputDecoration(
-                    labelText: "Nome da tarefa",
-                    prefixIcon: const Icon(Icons.edit_outlined),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                  ),
-                  onChanged: (value) => nomeTarefa = value,
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField(
-                  value: prioridade,
-                  items: ["Alta", "Média", "Baixa"]
-                      .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-                      .toList(),
-                  onChanged: (val) => prioridade = val!,
-                  decoration: InputDecoration(
-                    labelText: "Prioridade",
-                    prefixIcon: const Icon(Icons.flag),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Adicionado: Campo para seleção de categoria
-                DropdownButtonFormField<String>(
-                  value: _selectedCategory,
-                  items: _categories
-                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                      .toList(),
-                  onChanged: (val) => _selectedCategory = val,
-                  decoration: InputDecoration(
-                    labelText: "Categoria",
-                    prefixIcon: const Icon(Icons.category),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Campo para Data de Vencimento
-                StatefulBuilder(
-                  builder: (context, setInnerState) {
-                    return InkWell(
-                      onTap: () async {
-                        final DateTime? picked = await showDatePicker(
-                          context: context,
-                          initialDate: _selectedDueDate ?? DateTime.now(),
-                          firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                          lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+        return StatefulBuilder(
+          builder: (context, setInnerState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              backgroundColor: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      "Nova Tarefa",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                          color: Color(0xFF3CA6F6)),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: "Nome da tarefa",
+                        prefixIcon: const Icon(Icons.edit_outlined),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                      ),
+                      onChanged: (value) => nomeTarefa = value,
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField(
+                      value: prioridade,
+                      items: ["Alta", "Média", "Baixa"]
+                          .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+                          .toList(),
+                      onChanged: (val) => prioridade = val!,
+                      decoration: InputDecoration(
+                        labelText: "Prioridade",
+                        prefixIcon: const Icon(Icons.flag),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: _selectedCategory,
+                      items: _categories
+                          .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                          .toList(),
+                      onChanged: (val) => _selectedCategory = val,
+                      decoration: InputDecoration(
+                        labelText: "Categoria",
+                        prefixIcon: const Icon(Icons.category),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Adicionado: Seleção de Dias de Repetição
+                    const Text(
+                      "Repetir em (Opcional)",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8.0,
+                      children: _weekdaysMap.entries.map((entry) {
+                        final int dayIndex = entry.key;
+                        final String dayName = entry.value;
+                        final bool isSelected = _dialogRepetitionDays.contains(dayIndex);
+                        return ChoiceChip(
+                          label: Text(dayName),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            setInnerState(() {
+                              if (selected) {
+                                _dialogRepetitionDays.add(dayIndex);
+                              } else {
+                                _dialogRepetitionDays.remove(dayIndex);
+                              }
+                            });
+                          },
                         );
-                        if (picked != null) {
-                          setInnerState(() {
-                            _selectedDueDate = picked;
-                          });
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    StatefulBuilder(
+                      builder: (context, setInnerState) {
+                        return InkWell(
+                          onTap: () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: _selectedDueDate ?? DateTime.now(),
+                              firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                              lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                            );
+                            if (picked != null) {
+                              setInnerState(() {
+                                _selectedDueDate = picked;
+                              });
+                            }
+                          },
+                          child: InputDecorator(
+                            decoration: InputDecoration(
+                              labelText: "Data de Vencimento (Opcional)",
+                              prefixIcon: const Icon(Icons.calendar_today),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                              filled: true,
+                              fillColor: Colors.grey[100],
+                            ),
+                            child: Text(
+                              _selectedDueDate == null
+                                  ? 'Selecionar Data'
+                                  : DateFormat('dd/MM/yyyy', 'pt_BR').format(_selectedDueDate!),
+                              style: TextStyle(
+                                color: _selectedDueDate == null ? Colors.grey : Colors.black,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (nomeTarefa.isNotEmpty) {
+                          final novaTarefa = TarefaModel(
+                            nome: nomeTarefa,
+                            prioridade: prioridade,
+                            data: selectedDate,
+                            dueDate: _selectedDueDate,
+                            category: _selectedCategory,
+                            repetitionDays: _dialogRepetitionDays.isNotEmpty ? _dialogRepetitionDays : null, // Salvar dias de repetição
+                          );
+                          await _tarefaService.adicionarTarefa(novaTarefa);
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                          }
+                          _fetchTasksForCurrentMonth();
                         }
                       },
-                      child: InputDecorator(
-                        decoration: InputDecoration(
-                          labelText: "Data de Vencimento (Opcional)",
-                          prefixIcon: const Icon(Icons.calendar_today),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16)),
-                          filled: true,
-                          fillColor: Colors.grey[100],
-                        ),
-                        child: Text(
-                          _selectedDueDate == null
-                              ? 'Selecionar Data'
-                              : DateFormat('dd/MM/yyyy', 'pt_BR').format(_selectedDueDate!),
-                          style: TextStyle(
-                            color: _selectedDueDate == null ? Colors.grey : Colors.black,
-                          ),
-                        ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3CA6F6),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                    );
-                  },
+                      child: const Text('ADICIONAR TAREFA'),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (nomeTarefa.isNotEmpty) {
-                      final novaTarefa = TarefaModel(
-                        nome: nomeTarefa,
-                        prioridade: prioridade,
-                        data: selectedDate,
-                        dueDate: _selectedDueDate,
-                        category: _selectedCategory, // Adicionado: Incluir categoria
-                      );
-                      await _tarefaService.adicionarTarefa(novaTarefa);
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                      }
-                      _fetchTasksForCurrentMonth();
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3CA6F6),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text('ADICIONAR TAREFA'),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
   }
 
-  void _showEditTaskDialog(
-      BuildContext context, TarefaModel tarefa, DateTime selectedDate) {
+  Future<void> _showEditTaskDialog(
+      BuildContext context, TarefaModel tarefa, DateTime selectedDate) async {
     String nomeEditado = tarefa.nome;
     String prioridadeEditada = tarefa.prioridade;
     bool isCompletedEdit = tarefa.isCompleted;
     DateTime? _selectedDueDateEdit = tarefa.dueDate;
     String? _selectedCategoryEdit = tarefa.category;
+    List<int> _dialogRepetitionDays = List.from(tarefa.repetitionDays ?? []); // Carregar dias de repetição existentes
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (_) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          backgroundColor: Colors.white,
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  "Editar Tarefa",
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      color: Color(0xFF3CA6F6)),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: TextEditingController(text: nomeEditado),
-                  decoration: InputDecoration(
-                    labelText: "Nome da tarefa",
-                    prefixIcon: const Icon(Icons.edit_outlined),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                  ),
-                  onChanged: (value) => nomeEditado = value,
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField(
-                  value: prioridadeEditada,
-                  items: ["Alta", "Média", "Baixa"]
-                      .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-                      .toList(),
-                  onChanged: (val) => prioridadeEditada = val!,
-                  decoration: InputDecoration(
-                    labelText: "Prioridade",
-                    prefixIcon: const Icon(Icons.flag),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: _selectedCategoryEdit,
-                  items: _categories
-                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                      .toList(),
-                  onChanged: (val) => _selectedCategoryEdit = val,
-                  decoration: InputDecoration(
-                    labelText: "Categoria",
-                    prefixIcon: const Icon(Icons.category),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                StatefulBuilder(
-                  builder: (context, setInnerState) {
-                    return InkWell(
-                      onTap: () async {
-                        final DateTime? picked = await showDatePicker(
-                          context: context,
-                          initialDate: _selectedDueDateEdit ?? DateTime.now(),
-                          firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                          lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-                        );
-                        if (picked != null) {
-                          setInnerState(() {
-                            _selectedDueDateEdit = picked;
-                          });
-                        }
-                      },
-                      child: InputDecorator(
-                        decoration: InputDecoration(
-                          labelText: "Data de Vencimento (Opcional)",
-                          prefixIcon: const Icon(Icons.calendar_today),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16)),
-                          filled: true,
-                          fillColor: Colors.grey[100],
-                        ),
-                        child: Text(
-                          _selectedDueDateEdit == null
-                              ? 'Selecionar Data'
-                              : DateFormat('dd/MM/yyyy', 'pt_BR').format(_selectedDueDateEdit!),
-                          style: TextStyle(
-                            color: _selectedDueDateEdit == null ? Colors.grey : Colors.black,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                Row(
+        return StatefulBuilder(
+          builder: (context, setInnerState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              backgroundColor: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Checkbox(
-                      value: isCompletedEdit,
-                      onChanged: (bool? newValue) {
-                        if (newValue != null) {
-                          isCompletedEdit = newValue;
-                        }
+                    const Text(
+                      "Editar Tarefa",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                          color: Color(0xFF3CA6F6)),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: TextEditingController(text: nomeEditado),
+                      decoration: InputDecoration(
+                        labelText: "Nome da tarefa",
+                        prefixIcon: const Icon(Icons.edit_outlined),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                      ),
+                      onChanged: (value) => nomeEditado = value,
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField(
+                      value: prioridadeEditada,
+                      items: ["Alta", "Média", "Baixa"]
+                          .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+                          .toList(),
+                      onChanged: (val) => prioridadeEditada = val!,
+                      decoration: InputDecoration(
+                        labelText: "Prioridade",
+                        prefixIcon: const Icon(Icons.flag),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: _selectedCategoryEdit,
+                      items: _categories
+                          .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                          .toList(),
+                      onChanged: (val) => _selectedCategoryEdit = val,
+                      decoration: InputDecoration(
+                        labelText: "Categoria",
+                        prefixIcon: const Icon(Icons.category),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Adicionado: Seleção de Dias de Repetição na Edição
+                    const Text(
+                      "Repetir em (Opcional)",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8.0,
+                      children: _weekdaysMap.entries.map((entry) {
+                        final int dayIndex = entry.key;
+                        final String dayName = entry.value;
+                        final bool isSelected = _dialogRepetitionDays.contains(dayIndex);
+                        return ChoiceChip(
+                          label: Text(dayName),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            setInnerState(() {
+                              if (selected) {
+                                _dialogRepetitionDays.add(dayIndex);
+                              } else {
+                                _dialogRepetitionDays.remove(dayIndex);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    StatefulBuilder(
+                      builder: (context, setInnerState) {
+                        return InkWell(
+                          onTap: () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: _selectedDueDateEdit ?? DateTime.now(),
+                              firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                              lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                            );
+                            if (picked != null) {
+                              setInnerState(() {
+                                _selectedDueDateEdit = picked;
+                              });
+                            }
+                          },
+                          child: InputDecorator(
+                            decoration: InputDecoration(
+                              labelText: "Data de Vencimento (Opcional)",
+                              prefixIcon: const Icon(Icons.calendar_today),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                              filled: true,
+                              fillColor: Colors.grey[100],
+                            ),
+                            child: Text(
+                              _selectedDueDateEdit == null
+                                  ? 'Selecionar Data'
+                                  : DateFormat('dd/MM/yyyy', 'pt_BR').format(_selectedDueDateEdit!),
+                              style: TextStyle(
+                                color: _selectedDueDateEdit == null ? Colors.grey : Colors.black,
+                              ),
+                            ),
+                          ),
+                        );
                       },
                     ),
-                    const Text('Concluída'),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: isCompletedEdit,
+                          onChanged: (bool? newValue) {
+                            if (newValue != null) {
+                              isCompletedEdit = newValue;
+                            }
+                          },
+                        ),
+                        const Text('Concluída'),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (nomeEditado.isNotEmpty) {
+                          final tarefaAtualizada = tarefa.copyWith(
+                            nome: nomeEditado,
+                            prioridade: prioridadeEditada,
+                            data: tarefa.data,
+                            isCompleted: isCompletedEdit,
+                            dueDate: _selectedDueDateEdit,
+                            category: _selectedCategoryEdit,
+                            repetitionDays: _dialogRepetitionDays.isNotEmpty ? _dialogRepetitionDays : null, // Salvar dias de repetição
+                          );
+                          await _tarefaService.editarTarefa(tarefaAtualizada);
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                          }
+                          _fetchTasksForCurrentMonth();
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3CA6F6),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text('SALVAR'),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (nomeEditado.isNotEmpty) {
-                      final tarefaAtualizada = tarefa.copyWith(
-                        nome: nomeEditado,
-                        prioridade: prioridadeEditada,
-                        data: tarefa.data,
-                        isCompleted: isCompletedEdit,
-                        dueDate: _selectedDueDateEdit,
-                        category: _selectedCategoryEdit,
-                      );
-                      await _tarefaService.editarTarefa(tarefaAtualizada);
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                      }
-                      _fetchTasksForCurrentMonth();
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3CA6F6),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text('SALVAR'),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
