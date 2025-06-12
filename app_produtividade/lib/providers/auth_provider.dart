@@ -28,6 +28,8 @@ class AuthProvider with ChangeNotifier {
       _user = await _authService.signInWithEmail(email, password);
       _needsProfileCompletion = _user?.hasFullProfile == false;
       debugPrint('AuthProvider: signInWithEmail - Usuário: ${_user?.email}, Autenticado: $isAuthenticated, Precisa completar perfil: $_needsProfileCompletion');
+      debugPrint('AuthProvider: signInWithEmail - Dados do usuário: ${_user?.toJson()}');
+      debugPrint('AuthProvider: signInWithEmail - hasFullProfile: ${_user?.hasFullProfile}');
     } catch (e) {
       _error = e.toString();
       debugPrint('AuthProvider: signInWithEmail - Erro: $_error');
@@ -46,6 +48,8 @@ class AuthProvider with ChangeNotifier {
       _user = await _authService.signInWithGoogle();
       _needsProfileCompletion = _user?.hasFullProfile == false;
       debugPrint('AuthProvider: signInWithGoogle - Usuário: ${_user?.email}, Autenticado: $isAuthenticated, Precisa completar perfil: $_needsProfileCompletion');
+      debugPrint('AuthProvider: signInWithGoogle - Dados do usuário: ${_user?.toJson()}');
+      debugPrint('AuthProvider: signInWithGoogle - hasFullProfile: ${_user?.hasFullProfile}');
     } catch (e) {
       _error = e.toString();
       debugPrint('AuthProvider: signInWithGoogle - Erro: $_error');
@@ -122,10 +126,11 @@ class AuthProvider with ChangeNotifier {
       _user = _user!.copyWith(name: name, weight: weight, height: height);
       _needsProfileCompletion = false;
       debugPrint('AuthProvider: completeUserProfile - Perfil completo. Usuário: ${_user?.email}, Precisa completar perfil: $_needsProfileCompletion');
+      debugPrint('AuthProvider: completeUserProfile - Dados do usuário: ${_user?.toJson()}');
+      debugPrint('AuthProvider: completeUserProfile - hasFullProfile: ${_user?.hasFullProfile}');
     } catch (e) {
       _error = e.toString();
       debugPrint('AuthProvider: completeUserProfile - Erro: $_error');
-      print('Erro ao completar perfil: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -141,9 +146,37 @@ class AuthProvider with ChangeNotifier {
       _user = await _authService.signUpWithEmail(email, password);
       _needsProfileCompletion = _user?.hasFullProfile == false;
       debugPrint('AuthProvider: signUpWithEmail - Usuário: ${_user?.email}, Autenticado: $isAuthenticated, Precisa completar perfil: $_needsProfileCompletion');
+      debugPrint('AuthProvider: signUpWithEmail - Dados do usuário: ${_user?.toJson()}');
+      debugPrint('AuthProvider: signUpWithEmail - hasFullProfile: ${_user?.hasFullProfile}');
     } catch (e) {
       _error = e.toString();
       debugPrint('AuthProvider: signUpWithEmail - Erro: $_error');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateUserProfile(UserModel updatedUser) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _authService.saveUserProfileData(
+        updatedUser.id,
+        updatedUser.name ?? '',
+        updatedUser.weight ?? 0,
+        updatedUser.height ?? 0,
+      );
+      _user = updatedUser;
+      _needsProfileCompletion = _user?.hasFullProfile == false;
+      debugPrint('AuthProvider: updateUserProfile - Perfil atualizado. Usuário: ${_user?.email}, Precisa completar perfil: $_needsProfileCompletion');
+      debugPrint('AuthProvider: updateUserProfile - Dados do usuário: ${_user?.toJson()}');
+    } catch (e) {
+      _error = e.toString();
+      debugPrint('AuthProvider: updateUserProfile - Erro: $_error');
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();

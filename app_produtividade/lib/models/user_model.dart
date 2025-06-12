@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 enum AuthProviderType {
   email,
@@ -26,6 +26,7 @@ class UserModel {
   });
 
   factory UserModel.fromFirebaseUser(User user, AuthProviderType provider) {
+    debugPrint('UserModel: fromFirebaseUser - Criando modelo do usuário Firebase: ${user.uid}');
     return UserModel(
       id: user.uid,
       name: user.displayName,
@@ -35,7 +36,8 @@ class UserModel {
   }
 
   Map<String, dynamic> toJson() {
-    return {
+    debugPrint('UserModel: toJson - Convertendo modelo para JSON');
+    final json = {
       'id': id,
       'name': name,
       'email': email,
@@ -43,26 +45,40 @@ class UserModel {
       'height': height,
       'authProvider': authProvider.toString().split('.').last,
     };
+    debugPrint('UserModel: toJson - JSON gerado: $json');
+    return json;
   }
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    debugPrint('UserModel: fromJson - Convertendo JSON para modelo: $json');
+    
     AuthProviderType providerType;
     try {
+      final providerStr = json['authProvider'] as String? ?? 'unknown';
       providerType = AuthProviderType.values.firstWhere(
-        (e) => e.toString().split('.').last == json['authProvider'] as String,
+        (e) => e.toString().split('.').last == providerStr,
+        orElse: () => AuthProviderType.unknown,
       );
     } catch (e) {
+      debugPrint('UserModel: fromJson - Erro ao converter provider: $e');
       providerType = AuthProviderType.unknown;
     }
 
-    return UserModel(
-      id: json['id'] as String,
-      name: json['name'] as String?,
-      email: json['email'] as String,
-      weight: json['weight'] != null ? (json['weight'] as num).toDouble() : null,
-      height: json['height'] != null ? (json['height'] as num).toDouble() : null,
-      authProvider: providerType,
-    );
+    try {
+      final user = UserModel(
+        id: json['id'] as String,
+        name: json['name'] as String?,
+        email: json['email'] as String,
+        weight: json['weight'] != null ? (json['weight'] as num).toDouble() : null,
+        height: json['height'] != null ? (json['height'] as num).toDouble() : null,
+        authProvider: providerType,
+      );
+      debugPrint('UserModel: fromJson - Modelo criado com sucesso: ${user.toJson()}');
+      return user;
+    } catch (e) {
+      debugPrint('UserModel: fromJson - Erro ao criar modelo: $e');
+      rethrow;
+    }
   }
 
   UserModel copyWith({
@@ -83,5 +99,10 @@ class UserModel {
     );
   }
 
-  bool get hasFullProfile => name != null && weight != null && height != null && name!.isNotEmpty;
+  bool get hasFullProfile {
+    final hasProfile = name != null && weight != null && height != null && name!.isNotEmpty;
+    debugPrint('UserModel: hasFullProfile - Verificando perfil completo: $hasProfile');
+    debugPrint('UserModel: hasFullProfile - Dados: name=$name, weight=$weight, height=$height');
+    return hasProfile;
+  }
 }

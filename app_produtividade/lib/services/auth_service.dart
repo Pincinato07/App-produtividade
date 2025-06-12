@@ -20,6 +20,7 @@ class AuthService {
         password: password,
       );
       UserModel user = UserModel.fromFirebaseUser(result.user!, AuthProviderType.email);
+      await _userService.saveUserProfile(user);
       await _saveUser(user);
       debugPrint('AuthService: signUpWithEmail - Sucesso. UID: ${user.id}');
       return user;
@@ -43,15 +44,35 @@ class AuthService {
         email: email,
         password: password,
       );
-      UserModel user = UserModel.fromFirebaseUser(result.user!, AuthProviderType.email);
-      final fullProfile = await _userService.getUserProfile(user.id);
-      if (fullProfile != null) {
-        user = user.copyWith(
-          name: fullProfile.name,
-          weight: fullProfile.weight,
-          height: fullProfile.height,
-        );
+      
+      if (result.user == null) {
+        throw Exception('Falha ao autenticar usuário');
       }
+
+      UserModel user = UserModel.fromFirebaseUser(result.user!, AuthProviderType.email);
+      debugPrint('AuthService: signInWithEmail - Usuário criado do Firebase: ${user.toJson()}');
+      
+      try {
+        final fullProfile = await _userService.getUserProfile(user.id);
+        debugPrint('AuthService: signInWithEmail - Perfil completo obtido: ${fullProfile?.toJson()}');
+        
+        if (fullProfile != null) {
+          user = user.copyWith(
+            name: fullProfile.name,
+            weight: fullProfile.weight,
+            height: fullProfile.height,
+          );
+          debugPrint('AuthService: signInWithEmail - Usuário atualizado com perfil: ${user.toJson()}');
+        } else {
+          // Se não existe perfil, salva o perfil básico no Firestore
+          await _userService.saveUserProfile(user);
+          debugPrint('AuthService: signInWithEmail - Perfil básico salvo no Firestore');
+        }
+      } catch (e) {
+        debugPrint('AuthService: signInWithEmail - Erro ao buscar/salvar perfil: $e');
+        // Continua mesmo com erro no perfil, pois o usuário está autenticado
+      }
+      
       await _saveUser(user);
       debugPrint('AuthService: signInWithEmail - Sucesso. UID: ${user.id}');
       return user;
@@ -76,15 +97,35 @@ class AuthService {
       );
 
       final UserCredential result = await _auth.signInWithCredential(credential);
-      UserModel user = UserModel.fromFirebaseUser(result.user!, AuthProviderType.google);
-      final fullProfile = await _userService.getUserProfile(user.id);
-      if (fullProfile != null) {
-        user = user.copyWith(
-          name: fullProfile.name,
-          weight: fullProfile.weight,
-          height: fullProfile.height,
-        );
+      
+      if (result.user == null) {
+        throw Exception('Falha ao autenticar usuário');
       }
+
+      UserModel user = UserModel.fromFirebaseUser(result.user!, AuthProviderType.google);
+      debugPrint('AuthService: signInWithGoogle - Usuário criado do Firebase: ${user.toJson()}');
+      
+      try {
+        final fullProfile = await _userService.getUserProfile(user.id);
+        debugPrint('AuthService: signInWithGoogle - Perfil completo obtido: ${fullProfile?.toJson()}');
+        
+        if (fullProfile != null) {
+          user = user.copyWith(
+            name: fullProfile.name,
+            weight: fullProfile.weight,
+            height: fullProfile.height,
+          );
+          debugPrint('AuthService: signInWithGoogle - Usuário atualizado com perfil: ${user.toJson()}');
+        } else {
+          // Se não existe perfil, salva o perfil básico no Firestore
+          await _userService.saveUserProfile(user);
+          debugPrint('AuthService: signInWithGoogle - Perfil básico salvo no Firestore');
+        }
+      } catch (e) {
+        debugPrint('AuthService: signInWithGoogle - Erro ao buscar/salvar perfil: $e');
+        // Continua mesmo com erro no perfil, pois o usuário está autenticado
+      }
+      
       await _saveUser(user);
       debugPrint('AuthService: signInWithGoogle - Sucesso. UID: ${user.id}');
       return user;

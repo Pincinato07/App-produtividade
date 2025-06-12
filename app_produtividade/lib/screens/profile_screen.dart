@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   @override
@@ -105,6 +106,27 @@ class ProfileScreen extends StatelessWidget {
                                 'Método de Login',
                                 user.authProvider.name.toUpperCase(),
                                 Icons.login,
+                              ),
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => EditProfileScreen(user: user),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.edit),
+                                  label: const Text('EDITAR INFORMAÇÕES'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF3CA6F6),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                  ),
+                                ),
                               ),
                             ],
                           ),

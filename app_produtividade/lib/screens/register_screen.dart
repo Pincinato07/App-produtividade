@@ -162,9 +162,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 if (!mounted) return;
 
                 if (authProvider.isAuthenticated) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Login bem-sucedido!')),
-                  );
+                  if (authProvider.needsProfileCompletion) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Por favor, complete seu perfil')),
+                    );
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const RegisterScreen(isProfileCompletion: true),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Login bem-sucedido!')),
+                    );
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                    );
+                  }
                 } else if (authProvider.error != null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(authProvider.error!)),
@@ -243,24 +259,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   try {
                     if (widget.isProfileCompletion) {
                       await authProvider.completeUserProfile(nome, double.parse(peso), double.parse(altura));
+                      if (!mounted) return;
+                      
+                      if (authProvider.isAuthenticated && !authProvider.needsProfileCompletion) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Perfil completo! Redirecionando...')),
+                        );
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                        );
+                      }
                     } else {
                       await authProvider.signUpWithEmail(email, senha);
                       if (authProvider.isAuthenticated) {
                         await authProvider.completeUserProfile(nome, double.parse(peso), double.parse(altura));
+                        if (!mounted) return;
+                        
+                        if (!authProvider.needsProfileCompletion) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Cadastro e perfil completos! Redirecionando...')),
+                          );
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                          );
+                        }
                       }
                     }
 
-                    if (!mounted) return;
-
-                    if (authProvider.isAuthenticated && !authProvider.needsProfileCompletion) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Cadastro e perfil completos! Redirecionando...')),
-                      );
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) => DashboardScreen()),
-                      );
-                    } else if (authProvider.error != null) {
+                    if (authProvider.error != null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text(authProvider.error!)),
                       );
@@ -282,8 +310,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
               child: Text(
-                widget.isProfileCompletion ? 'Completar Perfil' : 'Criar conta',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                widget.isProfileCompletion ? 'COMPLETAR PERFIL' : 'CRIAR CONTA',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
             ),
           ),
@@ -351,6 +379,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
         onPressed: () async {
           final authProvider = Provider.of<AuthProvider>(context, listen: false);
           await authProvider.signInWithGoogle();
+
+          if (!mounted) return;
+
+          if (authProvider.isAuthenticated) {
+            if (authProvider.needsProfileCompletion) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Por favor, complete seu perfil')),
+              );
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const RegisterScreen(isProfileCompletion: true),
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Login com Google bem-sucedido!')),
+              );
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const DashboardScreen()),
+              );
+            }
+          } else if (authProvider.error != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(authProvider.error!)),
+            );
+          }
         },
         style: OutlinedButton.styleFrom(
           backgroundColor: Colors.white,
