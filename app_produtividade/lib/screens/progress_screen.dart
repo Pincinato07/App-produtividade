@@ -125,20 +125,6 @@ class _ProgressScreenState extends State<ProgressScreen> {
     return days;
   }
 
-  // Método para obter o início da semana (segunda-feira)
-  DateTime _getStartOfWeek(DateTime date) {
-    final dayOfWeek = date.weekday; // 1 = segunda, 7 = domingo
-    return date.subtract(Duration(days: dayOfWeek - 1));
-  }
-
-  // Método para obter os 7 dias de uma semana a partir de uma data de início
-  List<DateTime> _getWeekDays(DateTime weekStartDate) {
-    final weekDays = <DateTime>[];
-    for (int i = 0; i < 7; i++) {
-      weekDays.add(weekStartDate.add(Duration(days: i)));
-    }
-    return weekDays;
-  }
 
   void _goToPreviousMonth() {
     setState(() {
@@ -180,20 +166,6 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
     setState(() {
       _tarefasHoje = tarefasDoDia;
-    });
-  }
-
-  void _onDateSelected(DateTime date) {
-    setState(() {
-      _selectedDate = date;
-      _filterTasksForSelectedDate();
-    });
-  }
-
-  void _onMonthChanged(DateTime date) {
-    setState(() {
-      _currentMonth = date;
-      _fetchTasksForCurrentMonth();
     });
   }
 
@@ -841,31 +813,35 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
   Widget _buildTaskItem(TarefaModel tarefa) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.grey.withOpacity(0.13),
+            spreadRadius: 2,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: ListTile(
         leading: Checkbox(
           value: tarefa.isCompleted,
+          activeColor: const Color(0xFF3CA6F6),
           onChanged: (bool? value) async {
             if (value != null) {
               await _toggleTaskCompletion(tarefa);
+              await Future.delayed(const Duration(milliseconds: 200));
             }
           },
         ),
         title: Text(
           tarefa.nome,
           style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 17,
             decoration: tarefa.isCompleted ? TextDecoration.lineThrough : null,
             color: tarefa.isCompleted ? Colors.grey : Colors.black,
           ),
@@ -878,7 +854,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
               children: [
                 Icon(
                   Icons.flag,
-                  size: 16,
+                  size: 18,
                   color: _getPriorityColor(tarefa.prioridade),
                 ),
                 const SizedBox(width: 4),
@@ -886,22 +862,24 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   tarefa.prioridade,
                   style: TextStyle(
                     color: _getPriorityColor(tarefa.prioridade),
-                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
                   ),
                 ),
                 if (tarefa.category != null) ...[
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Icon(
                     Icons.category,
-                    size: 16,
-                    color: Colors.grey[600],
+                    size: 18,
+                    color: Colors.blueGrey[400],
                   ),
                   const SizedBox(width: 4),
                   Text(
                     tarefa.category!,
                     style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
+                      color: Colors.blueGrey[400],
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
                     ),
                   ),
                 ],
@@ -933,11 +911,11 @@ class _ProgressScreenState extends State<ProgressScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: const Icon(Icons.edit),
+              icon: const Icon(Icons.edit, color: Color(0xFF3CA6F6)),
               onPressed: () => _showEditTaskDialog(context, tarefa, _selectedDate),
             ),
             IconButton(
-              icon: const Icon(Icons.delete),
+              icon: const Icon(Icons.delete, color: Colors.redAccent),
               onPressed: () => _deleteTask(tarefa.id!),
             ),
           ],

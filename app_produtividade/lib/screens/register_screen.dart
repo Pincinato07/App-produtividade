@@ -334,7 +334,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
         filled: true,
         fillColor: Colors.grey[100],
       ),
@@ -342,6 +342,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       obscureText: obscure,
       onSaved: onSaved,
       validator: validator,
+      style: const TextStyle(fontSize: 18),
     );
   }
 

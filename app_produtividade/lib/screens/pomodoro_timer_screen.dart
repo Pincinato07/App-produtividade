@@ -98,63 +98,91 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen> {
         title: const Text('Timer Pomodoro'),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              _currentPhase,
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 32),
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 200,
-                  height: 200,
-                  child: CircularProgressIndicator(
-                    value: _remainingTime / _currentDuration,
-                    strokeWidth: 10,
-                    backgroundColor: Colors.grey[300],
-                    color: const Color(0xFF3CA6F6),
-                  ),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                Text(
-                  _formatTime(_remainingTime),
-                  style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _currentPhase,
+                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF3CA6F6)),
+                    ),
+                    const SizedBox(height: 32),
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 200,
+                          height: 200,
+                          child: CircularProgressIndicator(
+                            value: _remainingTime / _currentDuration,
+                            strokeWidth: 10,
+                            backgroundColor: Colors.grey[300],
+                            color: const Color(0xFF3CA6F6),
+                          ),
+                        ),
+                        Text(
+                          _formatTime(_remainingTime),
+                          style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _isRunning ? _pauseTimer : _startTimer,
+                          icon: Icon(_isRunning ? Icons.pause : Icons.play_arrow),
+                          label: Text(_isRunning ? 'Pausar' : 'Iniciar'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3CA6F6),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        ElevatedButton.icon(
+                          onPressed: _resetTimer,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Resetar'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey[200],
+                            foregroundColor: Colors.black87,
+                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 32),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: _isRunning ? _pauseTimer : _startTimer,
-                  child: Text(_isRunning ? 'PAUSAR' : 'INICIAR'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    textStyle: const TextStyle(fontSize: 18),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton(
-                  onPressed: _resetTimer,
-                  child: const Text('REINICIAR'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    textStyle: const TextStyle(fontSize: 18),
-                    backgroundColor: Colors.redAccent,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Pomodoros Concluídos: $_pomodoroCount',
-              style: const TextStyle(fontSize: 18),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

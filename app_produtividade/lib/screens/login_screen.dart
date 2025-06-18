@@ -48,104 +48,97 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 40),
-                      Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            TextFormField(
-                              controller: _emailController,
-                              decoration: const InputDecoration(
-                                labelText: 'Email',
-                                prefixIcon: Icon(Icons.email),
-                              ),
-                              keyboardType: TextInputType.emailAddress,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Por favor, insira seu email';
-                                }
-                                if (!_isValidEmail(value)) {
-                                  return 'Por favor, insira um email válido';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _passwordController,
-                              decoration: const InputDecoration(
-                                labelText: 'Senha',
-                                prefixIcon: Icon(Icons.lock),
-                              ),
-                              obscureText: true,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Por favor, insira sua senha';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 32),
-                            ElevatedButton(
-                              onPressed: _handleLogin,
-                              child: const Text('ENTRAR'),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      const Row(
-                        children: [
-                          Expanded(child: Divider()),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              'ou continue com',
-                              style: TextStyle(color: Colors.grey),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              children: [
+                                TextFormField(
+                                  controller: _emailController,
+                                  decoration: InputDecoration(
+                                    labelText: 'E-mail',
+                                    prefixIcon: const Icon(Icons.email),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                                    filled: true,
+                                    fillColor: Colors.grey[100],
+                                  ),
+                                  keyboardType: TextInputType.emailAddress,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Por favor, insira seu e-mail';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 18),
+                                TextFormField(
+                                  controller: _passwordController,
+                                  decoration: InputDecoration(
+                                    labelText: 'Senha',
+                                    prefixIcon: const Icon(Icons.lock),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                                    filled: true,
+                                    fillColor: Colors.grey[100],
+                                  ),
+                                  obscureText: true,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Por favor, insira sua senha';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 28),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 52,
+                                  child: ElevatedButton(
+                                    onPressed: _handleLogin,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF3CA6F6),
+                                      foregroundColor: Colors.white,
+                                      textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                    ),
+                                    child: const Text('ENTRAR'),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          Expanded(child: Divider()),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: () async {
-                          final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                          await authProvider.signInWithGoogle();
-                        },
-                        icon: const Icon(Icons.g_mobiledata),
-                        label: const Text('CONTINUAR COM GOOGLE'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black87,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () async {
-                          final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                          await authProvider.signInWithApple();
-                        },
-                        icon: const Icon(Icons.apple),
-                        label: const Text('CONTINUAR COM APPLE'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black87,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
                       ),
                       const SizedBox(height: 24),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pushNamed('/register');
-                        },
-                        child: const Text(
-                          'Não tem uma conta? Criar conta',
-                          style: TextStyle(
-                            color: Color(0xFF3CA6F6),
-                            fontSize: 14,
+                      const Divider(height: 1, thickness: 1),
+                      const SizedBox(height: 24),
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: () {},
+                          icon: Image.asset('assets/google_logo.png', height: 28),
+                          label: const Text('Entrar com Google', style: TextStyle(fontSize: 18, color: Color(0xFF004487), fontWeight: FontWeight.bold)),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFF004487),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                              side: const BorderSide(color: Color(0xFFE0E0E0)),
+                            ),
                           ),
                         ),
                       ),
@@ -160,9 +153,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  bool _isValidEmail(String email) {
-    return email.contains('@') && email.contains('.');
-  }
 
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {

@@ -20,10 +20,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<TarefaModel> _allTasks = [];
   List<TarefaModel> _filteredTasks = [];
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   String searchQuery = '';
   String? selectedPriority;
   String? selectedCategory;
-  bool _isLoading = false;
   List<int> _selectedRepetitionDays = [];
 
   // Mapeamento de dias da semana para exibição na UI e valores de inteiro
@@ -47,6 +47,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     'Outros'
   ];
 
+  // Adicionar variável de controle para o filtro
+  bool _showFilters = false;
+
   @override
   void initState() {
     super.initState();
@@ -58,10 +61,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void dispose() {
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
   void _onSearchChanged() {
+    if (!mounted) return;
     setState(() {
       searchQuery = _searchController.text;
       _filterTasks();
@@ -109,25 +114,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: FutureBuilder<List<TarefaModel>>(
-          future: _tarefaService.getTarefas(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError) {
-              return Center(child: Text('Erro ao carregar tarefas: ${snapshot.error}'));
-            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              _allTasks = [];
-              _filteredTasks = [];
-              return _buildDashboardContent(context, authProvider, _filteredTasks);
-            } else {
-              if (_allTasks.isEmpty || _allTasks.length != snapshot.data!.length) { // Re-carrega se o número de tarefas mudou
-                _allTasks = snapshot.data!;
-                _filterTasks();
-              }
-              return _buildDashboardContent(context, authProvider, _filteredTasks);
-            }
+        child: _buildDashboardContent(context, authProvider, _filteredTasks),
+      ),
+      // Botão Meu Progresso fixo no rodapé
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+        child: ElevatedButton.icon(
+          onPressed: () {
+            Navigator.pushNamed(context, '/progress');
           },
+          icon: const Icon(Icons.show_chart),
+          label: const Text('Meu Progresso'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF3CA6F6),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     );
@@ -195,154 +201,160 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ),
-            const Divider(height: 1),
-            const SizedBox(height: 8),
-            const Text(
-              'Minhas atividades',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            const SizedBox(height: 12),
+            const Divider(height: 1, thickness: 1),
+            const SizedBox(height: 16),
             Container(
               decoration: BoxDecoration(
                 color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    color: Colors.black.withAlpha(15),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
               child: TextField(
                 controller: _searchController,
+                focusNode: _searchFocusNode,
+                style: const TextStyle(fontSize: 18),
                 decoration: const InputDecoration(
                   hintText: 'Buscar',
                   border: InputBorder.none,
-                  prefixIcon: Icon(Icons.search, color: Colors.grey),
-                  contentPadding: EdgeInsets.symmetric(vertical: 16),
+                  prefixIcon: Icon(Icons.search, color: Colors.blueAccent),
+                  contentPadding: EdgeInsets.symmetric(vertical: 18, horizontal: 16),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            Center(
-              child: Image.asset(
-                'assets/atividade.png',
-                height: 180,
-                fit: BoxFit.contain,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Prioridades',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            Center(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: ['Alta', 'Média', 'Baixa'].map((label) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: ChoiceChip(
-                        label: Text(label),
-                        selected: selectedPriority == label,
-                        onSelected: (selected) {
-                          setState(() {
-                            selectedPriority = selected ? label : null;
-                            _filterTasks();
-                          });
-                        },
-                        labelPadding:
-                            const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                        backgroundColor: Colors.grey[100],
-                        selectedColor: const Color(0xFF3CA6F6),
-                        labelStyle: TextStyle(
-                          fontWeight: FontWeight.w500,
-                          color: selectedPriority == label
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Categorias',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _categories.map((category) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: ChoiceChip(
-                      label: Text(category),
-                      selected: selectedCategory == category,
-                      onSelected: (selected) {
-                        setState(() {
-                          selectedCategory = selected ? category : null;
-                          _filterTasks();
+            const SizedBox(height: 18),
+            // Aba expansível de filtros
+            StatefulBuilder(
+              builder: (context, setFilterState) {
+                return Column(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        setFilterState(() {
+                          _showFilters = !_showFilters;
                         });
                       },
-                      labelPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                      backgroundColor: Colors.grey[100],
-                      selectedColor: const Color(0xFF3CA6F6),
-                      labelStyle: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: selectedCategory == category ? Colors.white : Colors.black,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Filtros', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF3CA6F6))),
+                            Icon(_showFilters ? Icons.expand_less : Icons.expand_more, color: const Color(0xFF3CA6F6)),
+                          ],
+                        ),
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
+                    if (_showFilters) ...[
+                      const SizedBox(height: 10),
+                      // Filtros de prioridade
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            FilterChip(
+                              label: const Text('Todas Prioridades'),
+                              selected: selectedPriority == null,
+                              selectedColor: Colors.blue[100],
+                              backgroundColor: Colors.grey[200],
+                              labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                              onSelected: (selected) {
+                                setState(() {
+                                  selectedPriority = null;
+                                  _filterTasks();
+                                });
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            ...['Alta', 'Média', 'Baixa'].map((priority) => Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: FilterChip(
+                                label: Text(priority),
+                                selected: selectedPriority == priority,
+                                selectedColor: Colors.blue[100],
+                                backgroundColor: Colors.grey[200],
+                                labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                                onSelected: (selected) {
+                                  setState(() {
+                                    selectedPriority = selected ? priority : null;
+                                    _filterTasks();
+                                  });
+                                },
+                              ),
+                            )),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      // Filtros de categoria
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            FilterChip(
+                              label: const Text('Todas Categorias'),
+                              selected: selectedCategory == null,
+                              selectedColor: Colors.blue[100],
+                              backgroundColor: Colors.grey[200],
+                              labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                              onSelected: (selected) {
+                                setState(() {
+                                  selectedCategory = null;
+                                  _filterTasks();
+                                });
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            ..._categories.map((category) => Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: FilterChip(
+                                label: Text(category),
+                                selected: selectedCategory == category,
+                                selectedColor: Colors.blue[100],
+                                backgroundColor: Colors.grey[200],
+                                labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                                onSelected: (selected) {
+                                  setState(() {
+                                    selectedCategory = selected ? category : null;
+                                    _filterTasks();
+                                  });
+                                },
+                              ),
+                            )),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              },
             ),
-            const SizedBox(height: 16),
-            // Tarefas filtradas (Agora sempre usamos _filteredTasks)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  (searchQuery.isNotEmpty || selectedPriority != null || selectedCategory != null)
-                      ? 'Resultados da busca'
-                      : 'Minhas tarefas', // Título dinâmico com base no status do filtro
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                const SizedBox(height: 8),
-                if (_filteredTasks.isEmpty)
-                  const Center(child: Text('Nenhuma tarefa encontrada.'))
-                else
-                  ..._filteredTasks.map((tarefa) {
-                    return _buildTaskItem(tarefa);
-                  }).toList(),
-              ],
+            const SizedBox(height: 18),
+            const Divider(height: 1, thickness: 1),
+            const SizedBox(height: 10),
+            // Lista de tarefas
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: tarefasExibidas.length,
+              itemBuilder: (context, index) {
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 350),
+                  child: _buildTaskItem(tarefasExibidas[index]),
+                );
+              },
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/progress');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF004487),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: const Text('Meu Progresso'),
-              ),
-            ),
+            const SizedBox(height: 80), // Espaço para o botão no rodapé
           ],
         ),
       ),
@@ -351,26 +363,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildTaskItem(TarefaModel tarefa) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.grey.withOpacity(0.13),
+            spreadRadius: 2,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: ListTile(
         leading: Checkbox(
           value: tarefa.isCompleted,
+          activeColor: const Color(0xFF3CA6F6),
           onChanged: (bool? value) async {
             if (value != null) {
               final tarefaAtualizada = tarefa.copyWith(isCompleted: value);
               await _tarefaService.editarTarefa(tarefaAtualizada);
+              // Animação simples ao marcar como concluída
+              await Future.delayed(const Duration(milliseconds: 200));
               _fetchTasks();
             }
           },
@@ -378,6 +393,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: Text(
           tarefa.nome,
           style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 17,
             decoration: tarefa.isCompleted ? TextDecoration.lineThrough : null,
             color: tarefa.isCompleted ? Colors.grey : Colors.black,
           ),
@@ -390,7 +407,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Icon(
                   Icons.flag,
-                  size: 16,
+                  size: 18,
                   color: _getPriorityColor(tarefa.prioridade),
                 ),
                 const SizedBox(width: 4),
@@ -398,22 +415,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   tarefa.prioridade,
                   style: TextStyle(
                     color: _getPriorityColor(tarefa.prioridade),
-                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
                   ),
                 ),
                 if (tarefa.category != null) ...[
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Icon(
                     Icons.category,
-                    size: 16,
-                    color: Colors.grey[600],
+                    size: 18,
+                    color: Colors.blueGrey[400],
                   ),
                   const SizedBox(width: 4),
                   Text(
                     tarefa.category!,
                     style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
+                      color: Colors.blueGrey[400],
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
                     ),
                   ),
                 ],
@@ -445,11 +464,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: const Icon(Icons.edit),
+              icon: const Icon(Icons.edit, color: Color(0xFF3CA6F6)),
               onPressed: () => _showEditTaskDialog(context, tarefa),
             ),
             IconButton(
-              icon: const Icon(Icons.delete),
+              icon: const Icon(Icons.delete, color: Colors.redAccent),
               onPressed: () => _deleteTask(tarefa.id!),
             ),
           ],
@@ -692,22 +711,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       "Nova Tarefa",
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 20,
+                          fontSize: 22,
                           color: Color(0xFF3CA6F6)),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     TextField(
                       decoration: InputDecoration(
                         labelText: "Nome da tarefa",
                         prefixIcon: const Icon(Icons.edit_outlined),
                         border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16)),
+                            borderRadius: BorderRadius.circular(18)),
                         filled: true,
                         fillColor: Colors.grey[100],
                       ),
+                      style: const TextStyle(fontSize: 18),
                       onChanged: (value) => nomeTarefa = value,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     DropdownButtonFormField(
                       value: prioridade,
                       items: ["Alta", "Média", "Baixa"]
@@ -718,12 +738,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         labelText: "Prioridade",
                         prefixIcon: const Icon(Icons.flag),
                         border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16)),
+                            borderRadius: BorderRadius.circular(18)),
                         filled: true,
                         fillColor: Colors.grey[100],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     DropdownButtonFormField<String>(
                       value: _selectedCategory,
                       items: _categories
@@ -734,12 +754,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         labelText: "Categoria",
                         prefixIcon: const Icon(Icons.category),
                         border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16)),
+                            borderRadius: BorderRadius.circular(18)),
                         filled: true,
                         fillColor: Colors.grey[100],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     const Text(
                       "Repetir em (Opcional)",
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -766,7 +786,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         );
                       }).toList(),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     StatefulBuilder(
                       builder: (context, setInnerState) {
                         return InkWell(
@@ -788,7 +808,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               labelText: "Data de Vencimento (Opcional)",
                               prefixIcon: const Icon(Icons.calendar_today),
                               border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16)),
+                                  borderRadius: BorderRadius.circular(18)),
                               filled: true,
                               fillColor: Colors.grey[100],
                             ),
@@ -804,28 +824,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         );
                       },
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
                     ElevatedButton(
-                      onPressed: () async {
+                      onPressed: () {
                         if (nomeTarefa.isNotEmpty) {
-                          final novaTarefa = TarefaModel(
-                            nome: nomeTarefa,
-                            prioridade: prioridade,
-                            data: DateTime.now(),
-                            dueDate: _selectedDueDate,
-                            category: _selectedCategory,
-                            repetitionDays: _dialogRepetitionDays.isNotEmpty ? _dialogRepetitionDays : null,
-                          );
-                          await _tarefaService.adicionarTarefa(novaTarefa);
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                          }
-                          _fetchTasks();
+                          Navigator.pop(context); // FECHA O DIÁLOGO ANTES DO AWAIT
+                          _tarefaService.adicionarTarefa(
+                            TarefaModel(
+                              nome: nomeTarefa,
+                              prioridade: prioridade,
+                              data: DateTime.now(),
+                              dueDate: _selectedDueDate,
+                              category: _selectedCategory,
+                              repetitionDays: _dialogRepetitionDays.isNotEmpty ? _dialogRepetitionDays : null,
+                            ),
+                          ).then((_) => _fetchTasks());
                         }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF3CA6F6),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
                       ),
                       child: const Text('ADICIONAR TAREFA'),
                     ),
@@ -841,13 +863,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _fetchTasks() {
     setState(() {
-      _isLoading = true;
     });
     _tarefaService.getTarefas().then((tarefas) {
       setState(() {
         _allTasks = tarefas;
         _filterTasks();
-        _isLoading = false;
       });
     });
   }

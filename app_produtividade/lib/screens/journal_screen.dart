@@ -63,78 +63,83 @@ class _JournalScreenState extends State<JournalScreen> {
     await showDialog<bool>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text(isNewEntry ? 'Nova Entrada' : 'Editar Entrada'),
-          content: TextField(
-            controller: _contentController,
-            maxLines: 5,
-            decoration: const InputDecoration(
-              hintText: 'Escreva seus pensamentos...',
-              border: OutlineInputBorder(),
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isNewEntry ? 'Nova Entrada' : 'Editar Entrada',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                    color: Color(0xFF3CA6F6),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                TextField(
+                  controller: _contentController,
+                  maxLines: 5,
+                  decoration: InputDecoration(
+                    hintText: 'Escreva seus pensamentos...',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                  ),
+                  style: const TextStyle(fontSize: 18),
+                ),
+                const SizedBox(height: 28),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancelar'),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () {
+                        final String newContent = _contentController.text.trim();
+                        if (newContent.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('O conteúdo não pode estar vazio.'), backgroundColor: Colors.red),
+                          );
+                          return;
+                        }
+                        Navigator.pop(context, true);
+                        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                        if (isNewEntry) {
+                          final newEntry = JournalEntryModel(
+                            userId: authProvider.user!.id,
+                            content: newContent,
+                            timestamp: DateTime.now(),
+                          );
+                          _journalService.addJournalEntry(newEntry).then((_) => _fetchJournalEntries());
+                        } else {
+                          _journalService.updateJournalEntry(entry!.copyWith(content: newContent, timestamp: DateTime.now())).then((_) => _fetchJournalEntries());
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3CA6F6),
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                      child: Text(isNewEntry ? 'ADICIONAR' : 'SALVAR'),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                if (!authProvider.isAuthenticated || authProvider.user == null) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Erro: Usuário não autenticado.'), backgroundColor: Colors.red),
-                    );
-                  }
-                  Navigator.pop(context, false);
-                  return;
-                }
-
-                final String newContent = _contentController.text.trim();
-                if (newContent.isEmpty) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('O conteúdo não pode estar vazio.'), backgroundColor: Colors.red),
-                    );
-                  }
-                  return; // Não fechar o diálogo se o conteúdo for vazio
-                }
-
-                try {
-                  if (isNewEntry) {
-                    final newEntry = JournalEntryModel(
-                      userId: authProvider.user!.id,
-                      content: newContent,
-                      timestamp: DateTime.now(),
-                    );
-                    await _journalService.addJournalEntry(newEntry);
-                  } else {
-                    final updatedEntry = entry.copyWith(
-                      content: newContent,
-                      timestamp: DateTime.now(), // Opcional: atualizar o timestamp na edição
-                    );
-                    await _journalService.updateJournalEntry(updatedEntry);
-                  }
-                  if (mounted) {
-                    Navigator.pop(context, true);
-                  }
-                } catch (e) {
-                  debugPrint('Erro ao salvar entrada: $e');
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Erro ao salvar: $e'), backgroundColor: Colors.red),
-                    );
-                  }
-                }
-              },
-              child: Text(isNewEntry ? 'Adicionar' : 'Salvar'),
-            ),
-          ],
         );
       },
     );
-    _fetchJournalEntries(); // Recarrega as entradas após adicionar/editar
   }
 
   Future<void> _deleteEntry(String entryId) async {
@@ -200,43 +205,49 @@ class _JournalScreenState extends State<JournalScreen> {
                     style: TextStyle(fontSize: 16, color: Colors.black54),
                   ),
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16.0),
+              : ListView.separated(
+                  padding: const EdgeInsets.all(20.0),
+                  separatorBuilder: (context, index) => const SizedBox(height: 16),
                   itemCount: _journalEntries.length,
                   itemBuilder: (context, index) {
                     final entry = _journalEntries[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.13),
+                            spreadRadius: 2,
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+                        leading: Icon(Icons.book, color: Colors.blue[400], size: 32),
+                        title: Text(
+                          DateFormat('dd/MM/yyyy HH:mm', 'pt_BR').format(entry.timestamp),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            entry.content,
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              DateFormat('dd/MM/yyyy HH:mm').format(entry.timestamp),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Color(0xFF3CA6F6)),
+                              onPressed: () => _addOrEditEntry(entry: entry),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              entry.content,
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit, color: Colors.blueAccent),
-                                  onPressed: () => _addOrEditEntry(entry: entry),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.redAccent),
-                                  onPressed: () => _deleteEntry(entry.id!),
-                                ),
-                              ],
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.redAccent),
+                              onPressed: () => _deleteEntry(entry.id!),
                             ),
                           ],
                         ),

@@ -22,133 +22,104 @@ class ProfileScreen extends StatelessWidget {
                     children: [
                       const Text(
                         'Nenhum usuário logado',
-                        style: TextStyle(fontSize: 16),
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black54),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       ElevatedButton(
                         onPressed: () => Navigator.pushReplacementNamed(context, '/register'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF3CA6F6),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
                         child: const Text('Fazer Login'),
                       ),
                     ],
                   ),
                 )
-              : Padding(
+              : SingleChildScrollView(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 30,
-                                    backgroundColor: const Color(0xFF3CA6F6),
-                                    child: Text(
-                                      user.name != null && user.name!.isNotEmpty
-                                          ? user.name!.substring(0, 1).toUpperCase()
-                                          : user.email.isNotEmpty
-                                              ? user.email.substring(0, 1).toUpperCase()
-                                              : '', // Fallback if both name and email are empty
-                                      style: const TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          user.name != null && user.name!.isNotEmpty
-                                              ? user.name!
-                                              : 'Nome Não Informado', // Display a default if name is null
-                                          style: Theme.of(context).textTheme.headlineSmall,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          user.email,
-                                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                                color: Colors.grey[600],
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const Divider(height: 32),
-                              if (user.weight != null && user.height != null) ...[
-                                _buildInfoRow(
-                                  context,
-                                  'Peso',
-                                  '${user.weight} kg',
-                                  Icons.monitor_weight,
-                                ),
-                                const SizedBox(height: 16),
-                                _buildInfoRow(
-                                  context,
-                                  'Altura',
-                                  '${user.height} cm',
-                                  Icons.height,
-                                ),
-                                const SizedBox(height: 16),
-                              ],
+                      CircleAvatar(
+                        radius: 48,
+                        backgroundColor: const Color(0xFF3CA6F6),
+                        child: Icon(Icons.person, size: 56, color: Colors.white),
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        user.name ?? 'Usuário',
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        user.email,
+                        style: const TextStyle(fontSize: 16, color: Colors.black54),
+                      ),
+                      const SizedBox(height: 24),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (user.weight != null && user.height != null) ...[
                               _buildInfoRow(
                                 context,
-                                'Método de Login',
-                                user.authProvider.name.toUpperCase(),
-                                Icons.login,
+                                'Peso',
+                                '${user.weight} kg',
+                                Icons.monitor_weight,
                               ),
-                              const SizedBox(height: 24),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => EditProfileScreen(user: user),
-                                      ),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.edit),
-                                  label: const Text('EDITAR INFORMAÇÕES'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF3CA6F6),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                              const SizedBox(height: 16),
+                              _buildInfoRow(
+                                context,
+                                'Altura',
+                                '${user.height} cm',
+                                Icons.height,
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                            _buildInfoRow(
+                              context,
+                              'Método de Login',
+                              user.authProvider.name.toUpperCase(),
+                              Icons.login,
+                            ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () => Navigator.pushNamed(context, '/edit_profile'),
+                                icon: const Icon(Icons.edit),
+                                label: const Text('Editar Perfil'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF3CA6F6),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            await context.read<AuthProvider>().signOut();
-                            if (context.mounted) {
-                              Navigator.pushReplacementNamed(context, '/register');
-                            }
-                          },
-                          icon: const Icon(Icons.logout),
-                          label: const Text('SAIR DA CONTA'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ],

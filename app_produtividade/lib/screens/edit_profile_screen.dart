@@ -44,69 +44,95 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Informações Pessoais',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      TextFormField(
-                        controller: _weightController,
-                        decoration: const InputDecoration(
-                          labelText: 'Peso (kg)',
-                          prefixIcon: Icon(Icons.monitor_weight),
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Por favor, insira seu peso';
-                          }
-                          final weight = double.tryParse(value);
-                          if (weight == null || weight <= 0 || weight > 300) {
-                            return 'Peso inválido';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _heightController,
-                        decoration: const InputDecoration(
-                          labelText: 'Altura (cm)',
-                          prefixIcon: Icon(Icons.height),
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Por favor, insira sua altura';
-                          }
-                          final height = double.tryParse(value);
-                          if (height == null || height <= 0 || height > 300) {
-                            return 'Altura inválida';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
-                  ),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _saveProfile,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3CA6F6),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Informações Pessoais',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    TextFormField(
+                      controller: _weightController,
+                      decoration: const InputDecoration(
+                        labelText: 'Peso (kg)',
+                        prefixIcon: Icon(Icons.monitor_weight),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(18))),
+                        filled: true,
+                        fillColor: Colors.grey,
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Por favor, insira seu peso';
+                        }
+                        final weight = double.tryParse(value);
+                        if (weight == null || weight <= 0 || weight > 300) {
+                          return 'Peso inválido';
+                        }
+                        return null;
+                      },
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _heightController,
+                      decoration: const InputDecoration(
+                        labelText: 'Altura (cm)',
+                        prefixIcon: Icon(Icons.height),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(18))),
+                        filled: true,
+                        fillColor: Colors.grey,
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Por favor, insira sua altura';
+                        }
+                        final height = double.tryParse(value);
+                        if (height == null || height <= 0 || height > 300) {
+                          return 'Altura inválida';
+                        }
+                        return null;
+                      },
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _saveProfile,
+                        icon: const Icon(Icons.save),
+                        label: const Text('Salvar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF3CA6F6),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Text('SALVAR ALTERAÇÕES'),
               ),
             ],
           ),
